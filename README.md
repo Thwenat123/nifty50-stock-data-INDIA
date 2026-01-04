@@ -10,14 +10,14 @@ Stocks: All 49 NIFTY constituents
 Period: January 2010 - current
 Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%, Log_Return, Ticker, Dividend(if any)
 
-Setup:
+Local Setup (MUST have Python 3.8+):
 1. Clone repository
-2. Install requirements: pip install -r requirements.txt
-3. Run initial download: python scripts/download_full_history.py
+2. Open cmd or powershell (as admin)
+3. Install requirements: pip install -r requirements.txt
+4. Run initial download: python scripts/download_full_history.py
+5. Automation: Setup Windows Task Scheduler to run this file daily at 1800 IST (6:00 PM) after market closes- Batch file: scripts/run_daily_update.bat
 
-Automation:
-Setup Windows Task Scheduler to run this file daily at 1800 IST (6:00 PM) after market closes-
-Batch file: scripts/run_daily_update.bat
+For others, direct download of data/NIFTY50_2010_20XX should suffice (but will not update automatically, will have to be redownloaded every market-open for new data)
 
 Project Structure:
 
