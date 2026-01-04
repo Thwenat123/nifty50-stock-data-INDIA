@@ -4,11 +4,11 @@ Project Overview:
 Complete automated pipeline for downloading and updating all NIFTY 50 Indian stocks data from 2010 to present. Daily automatic updates via Windows Task Scheduler.
 
 Dataset:
-File: nifty50_2010_2025.csv
+File: NIFTY50_2010_20XX.csv
 Rows: Approximately 190,000 daily observations
-Stocks: All 50 NIFTY constituents
-Period: January 2010 - December 2025
-Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%, Log_Return, Ticker
+Stocks: All 49 NIFTY constituents
+Period: January 2010 - current
+Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%, Log_Return, Ticker, Dividend(if any)
 
 Setup:
 1. Clone repository
