@@ -1,0 +1,4 @@
+2026-01-03 14:59:21 | FAILED | Rows: 0 | Failed: 49
+2026-01-03 15:25:12 | NO DATA | Market holiday
+2026-01-03 16:08:35 | NO DATA | Market holiday
+2026-01-04 10:32:27 | NO DATA | Market holiday
