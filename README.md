@@ -16,13 +16,17 @@ Setup:
 3. Run initial download: python scripts/download_full_history.py
 
 Automation:
-Windows Task Scheduler runs daily at 18:00 (6:00 PM) after market closes.
+Setup Windows Task Scheduler to run this file daily at 1800 IST (6:00 PM) after market closes-
 Batch file: scripts/run_daily_update.bat
 
 Project Structure:
-data/ - Historical CSV files
-scripts/ - Python and batch scripts
-docs/ - Setup instructions
+
+data/Historical CSV files
+
+scripts/Python and batch scripts
+
+docs/changelogs
+
 requirements.txt - Python dependencies
 
 Technical Stack:
