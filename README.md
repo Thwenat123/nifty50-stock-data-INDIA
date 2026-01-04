@@ -5,9 +5,13 @@ Complete automated pipeline for downloading and updating all NIFTY 50 Indian sto
 
 Dataset:
 File: NIFTY50_2010_20XX.csv
+
 Rows: Approximately 190,000 daily observations
+
 Stocks: All 49 NIFTY constituents
+
 Period: January 2010 - current
+
 Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%, Log_Return, Ticker, Dividend(if any)
 
 Local Setup (MUST have Python 3.8+):
