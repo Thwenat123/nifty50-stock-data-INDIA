@@ -1,10 +1,16 @@
-
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
 import os
 from datetime import datetime, timedelta
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(LOG_DIR, exist_ok=True)
 
 print("=" * 70)
 print("NIFTY 50 DAILY UPDATER")
@@ -27,17 +33,16 @@ TICKERS = [
     "HEROMOTOCO.NS", "IOC.NS"
 ]
 
-MASTER_FILE = "data/NIFTY50_2010_2026_20260103_1510.csv"
+MASTER_FILE = os.path.join(DATA_DIR, "NIFTY50_2010_20XX.csv")
 
 if not os.path.exists(MASTER_FILE):
     print(f"❌ ERROR: {MASTER_FILE} not found!")
-    print("   Make sure the file exists in this folder.")
     exit(1)
 
 print(f"📂 Loading {MASTER_FILE}...")
 try:
     df = pd.read_csv(MASTER_FILE)
-    df['Date'] = pd.to_datetime(df['Date'])
+    df['Date'] = pd.to_datetime(df['Date'], format="mixed", dayfirst=True)
     latest = df['Date'].max()
     total_rows = len(df)
     print(f"   ✓ Loaded: {total_rows:,} rows")
@@ -49,7 +54,6 @@ except Exception as e:
 
 start_date = (latest - timedelta(days=60)).strftime('%Y-%m-%d')
 print(f"\n📥 Downloading new data from {start_date}...")
-print(f"   Stocks: {len(TICKERS)}")
 print("-" * 70)
 
 all_new_data = []
@@ -59,38 +63,34 @@ for i, ticker in enumerate(TICKERS, 1):
     print(f"[{i:2d}/{len(TICKERS)}] {ticker:20s}", end="")
 
     try:
-        data = yf.download(ticker, start=start_date, progress=False, auto_adjust=False)
+        data = yf.download(ticker, start=start_date, progress=False)
+
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
 
         if not data.empty:
             new_df = data.reset_index()
             new_df['Ticker'] = ticker
 
-            new_df['Date'] = pd.to_datetime(new_df['Date']).dt.date
+            new_df['Date'] = pd.to_datetime(new_df['Date'])
 
-            closes = new_df['Close'].values
-            returns = np.full(len(closes), np.nan)
-
-            for j in range(1, len(closes)):
-                if closes[j-1] != 0:
-                    returns[j] = ((closes[j] - closes[j-1]) / closes[j-1]) * 100
-
-            new_df['Daily_Return_%'] = returns
+            new_df['Daily_Return_%'] = new_df['Close'].pct_change() * 100
 
             all_new_data.append(new_df)
             print(f" ✓ {len(new_df):,} rows")
         else:
             failed.append(ticker)
-            print(f" ✗ No data")
+            print(" ✗ No data")
 
     except Exception as e:
         failed.append(ticker)
-        print(f" ✗ Error")
+        print(f" ✗ Error: {str(e)[:50]}")
 
     time.sleep(0.2)
 
 if all_new_data:
     existing = pd.read_csv(MASTER_FILE)
-    existing['Date'] = pd.to_datetime(existing['Date'])
+    existing['Date'] = pd.to_datetime(existing['Date'], format="mixed", dayfirst=True)
 
     new_df = pd.concat(all_new_data, ignore_index=True)
     new_df['Date'] = pd.to_datetime(new_df['Date'])
@@ -102,50 +102,26 @@ if all_new_data:
     final_df.to_csv(MASTER_FILE, index=False)
 
     today = datetime.now().strftime("%Y%m%d_%H%M")
-    backup_file = f"NIFTY50_BACKUP_{today}.csv"
+    backup_file = os.path.join(DATA_DIR, f"NIFTY50_BACKUP_{today}.csv")
     final_df.to_csv(backup_file, index=False)
 
     print("\n" + "=" * 70)
     print("✅ UPDATE COMPLETE!")
     print("=" * 70)
-    print(f"📁 Master file updated: {MASTER_FILE}")
-    print(f"📁 Daily backup: {backup_file}")
-    print(f"📈 Total rows: {len(final_df):,} (was {total_rows:,})")
-    print(f"📅 Date range: {final_df['Date'].min().date()} to {final_df['Date'].max().date()}")
-    print(f"➕ New rows added: {len(new_df):,}")
 
-    if failed:
-        print(f"\n⚠ Failed: {len(failed)} stocks")
-        for f in failed[:3]:
-            print(f"   {f}")
-        if len(failed) > 3:
-            print(f"   ... and {len(failed)-3} more")
-
-    print(f"\n💰 LATEST MARKET DATA:")
-    for ticker in ["RELIANCE.NS", "TCS.NS"][:2]:
-        stock_data = final_df[final_df['Ticker'] == ticker].tail(1)
-        if not stock_data.empty:
-            row = stock_data.iloc[0]
-            ret = row['Daily_Return_%']
-            ret_str = f"{ret:+.2f}%" if pd.notna(ret) else "N/A"
-            print(f"  {ticker}: {row['Date'].date()} - ₹{row['Close']:,.2f} ({ret_str})")
-
-    with open("update_log.txt", "a") as f:
-        f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | "
-               f"UPDATE | Added {len(new_df):,} rows | "
-               f"Total: {len(final_df):,} | "
-               f"Latest: {final_df['Date'].max().date()}\n")
+    with open(os.path.join(LOG_DIR, "update_log.txt"), "a") as f:
+        f.write(
+            f"{datetime.now():%Y-%m-%d %H:%M:%S} | "
+            f"UPDATE | Added {len(new_df):,} rows | "
+            f"Total: {len(final_df):,} | "
+            f"Latest: {final_df['Date'].max().date()}\n"
+        )
 
 else:
     print("\n❌ No new data (market holiday?)")
-    with open("docs/update_log.txt", "a") as f:
-        f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} | NO DATA | Market holiday\n")
+    with open(os.path.join(LOG_DIR, "update_log.txt"), "a") as f:
+        f.write(
+            f"{datetime.now():%Y-%m-%d %H:%M:%S} | NO DATA | Market holiday\n"
+        )
 
-print(f"\n⏰ Next update scheduled: Tomorrow 18:00")
 print("=" * 70)
-
-
-
-
-
-
