@@ -1,10 +1,12 @@
-
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
 import os
 from datetime import datetime
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
 print("=" * 60)
 print("NIFTY 50 COMPLETE DOWNLOAD (2010-2026)")
@@ -28,6 +30,8 @@ TICKERS = [
 
 print(f"Downloading {len(TICKERS)} stocks from 2010-01-01...")
 
+os.makedirs(DATA_DIR, exist_ok=True)
+
 all_data = []
 failed = []
 
@@ -35,51 +39,67 @@ for i, ticker in enumerate(TICKERS, 1):
     print(f"{i:2d}/{len(TICKERS)} {ticker:20s}", end=" ")
 
     try:
-        stock = yf.Ticker(ticker)
-        hist = stock.history(start="2010-01-01")
+        hist = yf.download(
+            ticker,
+            start="2010-01-01",
+            end=datetime.now().strftime("%Y-%m-%d"),
+            interval="1d",
+            auto_adjust=False,
+            progress=False,
+            threads=False
+        )
 
-        if len(hist) > 1000:   
-            df = hist.reset_index()
-            df['Ticker'] = ticker
+        if isinstance(hist.columns, pd.MultiIndex):
+            hist.columns = hist.columns.get_level_values(0)
 
-            closes = df['Close'].tolist()
-            returns = []
-            for j in range(len(closes)):
-                if j == 0:
-                    returns.append(None)
-                elif closes[j-1] != 0:
-                    ret = ((closes[j] - closes[j-1]) / closes[j-1]) * 100
-                    returns.append(ret)
-                else:
-                    returns.append(None)
-
-            df['Daily_Return_%'] = returns
-
-            all_data.append(df)
-            print(f"✓ {len(df):,} rows ({df['Date'].min().date()} to {df['Date'].max().date()})")
-        else:
+        if hist.empty:
             failed.append(ticker)
-            print(f"✗ Not enough data: {len(hist)} rows")
+            print("✗ No data returned")
+            continue
+
+        df = hist.reset_index()
+        df["Ticker"] = ticker
+
+        closes = df["Close"].tolist()
+        returns = []
+
+        for j in range(len(closes)):
+            if j == 0 or closes[j - 1] == 0:
+                returns.append(None)
+            else:
+                returns.append(
+                    ((closes[j] - closes[j - 1]) / closes[j - 1]) * 100
+                )
+
+        df["Daily_Return_%"] = returns
+        all_data.append(df)
+
+        print(
+            f"✓ {len(df):,} rows "
+            f"({df['Date'].min().date()} to {df['Date'].max().date()})"
+        )
 
     except Exception as e:
         failed.append(ticker)
-        print(f"✗ Error")
+        print("✗ Error")
 
-    time.sleep(0.3)
+    time.sleep(0.5)
 
 if all_data:
     final_df = pd.concat(all_data, ignore_index=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    filename = f"data/NIFTY50_2010_2026_{timestamp}.csv"
+    filename = os.path.join(DATA_DIR, "NIFTY50_2010_20XX.csv")
     final_df.to_csv(filename, index=False)
 
-    print(f"\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("✅ DOWNLOAD COMPLETE!")
     print("=" * 60)
     print(f"File: {filename}")
     print(f"Rows: {len(final_df):,}")
-    print(f"Date range: {final_df['Date'].min().date()} to {final_df['Date'].max().date()}")
+    print(
+        f"Date range: "
+        f"{final_df['Date'].min().date()} to {final_df['Date'].max().date()}"
+    )
     print(f"Stocks: {final_df['Ticker'].nunique()}")
 
     if failed:
@@ -87,9 +107,9 @@ if all_data:
         for f in failed[:5]:
             print(f"  {f}")
 
-    print(f"\n💰 VERIFICATION:")
+    print("\n💰 VERIFICATION:")
     for ticker in ["RELIANCE.NS", "TCS.NS"]:
-        data = final_df[final_df['Ticker'] == ticker]
+        data = final_df[final_df["Ticker"] == ticker]
         first = data.iloc[0]
         last = data.iloc[-1]
         print(f"  {ticker}:")
@@ -98,6 +118,7 @@ if all_data:
 
 print(f"\n⏰ {datetime.now().strftime('%H:%M:%S')}")
 print("=" * 60)
+
 
 
 
