@@ -12,7 +12,7 @@ Stocks: All 49 NIFTY constituents
 
 Period: January 2010 - current
 
-Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%, Log_Return, Ticker, Dividend(if any)
+Columns: Date, Open, High, Low, Close, Volume, Daily_Return_%
 
 Local Setup (MUST have Python 3.8+):
 1. Clone repository
